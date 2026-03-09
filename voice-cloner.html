@@ -1,27 +1,357 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Voice Cloner</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
-        h1 { color: #333; }
-        button { margin: 10px; padding: 10px 20px; }
-        .output { margin-top: 20px; }
+        :root {
+            --bg: #f3f4f6;
+            --card: #ffffff;
+            --accent: #2563eb;
+            --accent-dark: #1e40af;
+            --muted: #6b7280;
+            --ok: #0f766e;
+            --warn: #b45309;
+            --danger: #b91c1c;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: var(--bg);
+            color: #111827;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .app {
+            width: min(880px, 100%);
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+            padding: 24px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+        }
+
+        .sub {
+            margin: 0 0 18px;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .panel {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 14px;
+            background: #fafafa;
+        }
+
+        .panel h2 {
+            font-size: 1rem;
+            margin: 0 0 10px;
+        }
+
+        button {
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 6px 8px 0 0;
+        }
+
+        button:hover { background: var(--accent-dark); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        input[type="text"],
+        textarea,
+        select,
+        input[type="range"] {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        textarea {
+            min-height: 90px;
+            resize: vertical;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+        }
+
+        .label {
+            margin-top: 12px;
+            display: block;
+            font-weight: 600;
+        }
+
+        .status {
+            margin-top: 14px;
+            padding: 10px;
+            border-radius: 10px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+        }
+
+        .status.ok { background: #ecfeff; border-color: #99f6e4; color: var(--ok); }
+        .status.warn { background: #fffbeb; border-color: #fde68a; color: var(--warn); }
+        .status.error { background: #fef2f2; border-color: #fecaca; color: var(--danger); }
+
+        .small {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        .stats {
+            margin-top: 10px;
+            font-size: 0.93rem;
+            line-height: 1.5;
+        }
+
+        .footer-note {
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        audio { width: 100%; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h1>Voice Cloner App</h1>
-    <button id="clone-btn">Clone Voice</button>
-    <div class="output" id="output"></div>
+    <main class="app">
+        <h1>Voice Cloner App</h1>
+        <p class="sub">
+            This demo captures a short voice sample, analyzes pitch/energy, then maps those traits to browser text-to-speech settings
+            to create a <strong>voice clone approximation</strong>.
+        </p>
+
+        <section class="grid">
+            <article class="panel">
+                <h2>1) Record Voice Sample</h2>
+                <button id="start-recording">Start Recording</button>
+                <button id="stop-recording" disabled>Stop</button>
+                <audio id="recorded-audio" controls hidden></audio>
+                <div class="stats" id="analysis-stats">No sample analyzed yet.</div>
+                <p class="small">Tip: Speak clearly for 5-10 seconds for better cloning.</p>
+            </article>
+
+            <article class="panel">
+                <h2>2) Generate Cloned Speech</h2>
+                <label class="label" for="voice-select">TTS Voice</label>
+                <select id="voice-select"></select>
+
+                <label class="label" for="text-input">Text to speak</label>
+                <textarea id="text-input">Hello! This is my cloned voice demo.</textarea>
+
+                <label class="label" for="pitch-range">Pitch offset</label>
+                <input id="pitch-range" type="range" min="0.5" max="2" step="0.01" value="1" />
+
+                <label class="label" for="rate-range">Rate offset</label>
+                <input id="rate-range" type="range" min="0.5" max="1.6" step="0.01" value="1" />
+
+                <button id="speak-btn">Speak with Clone</button>
+                <button id="stop-speak-btn">Stop Speech</button>
+            </article>
+        </section>
+
+        <div id="status" class="status">Ready. Record a sample to build your voice profile.</div>
+        <p class="footer-note">
+            Note: Browser-only voice cloning cannot perfectly recreate identity. For true cloning you'd use a dedicated AI model/API.
+        </p>
+    </main>
 
     <script>
-        document.getElementById('clone-btn').onclick = function() {
-            const outputDiv = document.getElementById('output');
-            outputDiv.innerHTML = '<p>Voice cloning feature not implemented.</p>';
-            // Here you will implement the voice cloning functionality
-        };
+        const startRecordingBtn = document.getElementById('start-recording');
+        const stopRecordingBtn = document.getElementById('stop-recording');
+        const speakBtn = document.getElementById('speak-btn');
+        const stopSpeakBtn = document.getElementById('stop-speak-btn');
+        const voiceSelect = document.getElementById('voice-select');
+        const textInput = document.getElementById('text-input');
+        const pitchRange = document.getElementById('pitch-range');
+        const rateRange = document.getElementById('rate-range');
+        const statusEl = document.getElementById('status');
+        const recordedAudio = document.getElementById('recorded-audio');
+        const analysisStats = document.getElementById('analysis-stats');
+
+        let mediaRecorder;
+        let recordedChunks = [];
+        let currentStream;
+        let clonedProfile = { pitch: 1, rate: 1, energy: 0 };
+
+        function setStatus(message, type = '') {
+            statusEl.className = `status ${type}`.trim();
+            statusEl.textContent = message;
+        }
+
+        function populateVoices() {
+            const voices = speechSynthesis.getVoices();
+            voiceSelect.innerHTML = '';
+            voices.forEach((voice, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `${voice.name} (${voice.lang})${voice.default ? ' — default' : ''}`;
+                voiceSelect.appendChild(opt);
+            });
+        }
+
+        function autocorrelationPitch(buffer, sampleRate) {
+            let bestOffset = -1;
+            let bestCorrelation = 0;
+            let rms = 0;
+
+            for (let i = 0; i < buffer.length; i++) rms += buffer[i] * buffer[i];
+            rms = Math.sqrt(rms / buffer.length);
+            if (rms < 0.01) return { pitchHz: 0, energy: rms };
+
+            const minLag = Math.floor(sampleRate / 350);
+            const maxLag = Math.floor(sampleRate / 80);
+
+            for (let lag = minLag; lag <= maxLag; lag++) {
+                let correlation = 0;
+                for (let i = 0; i < buffer.length - lag; i++) {
+                    correlation += buffer[i] * buffer[i + lag];
+                }
+                correlation /= (buffer.length - lag);
+                if (correlation > bestCorrelation) {
+                    bestCorrelation = correlation;
+                    bestOffset = lag;
+                }
+            }
+
+            if (bestOffset === -1) return { pitchHz: 0, energy: rms };
+            return { pitchHz: sampleRate / bestOffset, energy: rms };
+        }
+
+        async function analyzeRecording(audioBlob) {
+            const ctx = new AudioContext();
+            const arrayBuffer = await audioBlob.arrayBuffer();
+            const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+            const channel = audioBuffer.getChannelData(0);
+
+            const frameSize = 2048;
+            let pitchSum = 0;
+            let voicedFrames = 0;
+            let energySum = 0;
+
+            for (let i = 0; i + frameSize < channel.length; i += frameSize) {
+                const frame = channel.slice(i, i + frameSize);
+                const { pitchHz, energy } = autocorrelationPitch(frame, audioBuffer.sampleRate);
+                if (pitchHz >= 80 && pitchHz <= 350) {
+                    pitchSum += pitchHz;
+                    voicedFrames++;
+                }
+                energySum += energy;
+            }
+
+            const avgPitchHz = voicedFrames ? pitchSum / voicedFrames : 180;
+            const avgEnergy = energySum / Math.max(1, Math.floor(channel.length / frameSize));
+
+            clonedProfile.pitch = Math.min(2, Math.max(0.5, avgPitchHz / 180));
+            clonedProfile.rate = Math.min(1.6, Math.max(0.7, 0.95 + (avgEnergy - 0.03) * 2));
+            clonedProfile.energy = avgEnergy;
+
+            pitchRange.value = clonedProfile.pitch.toFixed(2);
+            rateRange.value = clonedProfile.rate.toFixed(2);
+
+            analysisStats.innerHTML = `
+                <strong>Voice profile ready</strong><br>
+                Estimated average pitch: ${avgPitchHz.toFixed(1)} Hz<br>
+                Average energy: ${avgEnergy.toFixed(4)}<br>
+                Suggested synth pitch: ${clonedProfile.pitch.toFixed(2)}<br>
+                Suggested synth rate: ${clonedProfile.rate.toFixed(2)}
+            `;
+
+            setStatus('Sample analyzed. Your voice clone profile is ready.', 'ok');
+            ctx.close();
+        }
+
+        startRecordingBtn.addEventListener('click', async () => {
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(currentStream);
+                recordedChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) recordedChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+                    recordedAudio.src = URL.createObjectURL(audioBlob);
+                    recordedAudio.hidden = false;
+                    await analyzeRecording(audioBlob);
+                };
+
+                mediaRecorder.start();
+                startRecordingBtn.disabled = true;
+                stopRecordingBtn.disabled = false;
+                setStatus('Recording... Click stop when done.', 'warn');
+            } catch (error) {
+                setStatus(`Microphone access failed: ${error.message}`, 'error');
+            }
+        });
+
+        stopRecordingBtn.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                startRecordingBtn.disabled = false;
+                stopRecordingBtn.disabled = true;
+                if (currentStream) {
+                    currentStream.getTracks().forEach((track) => track.stop());
+                }
+                setStatus('Processing your recording...', 'warn');
+            }
+        });
+
+        speakBtn.addEventListener('click', () => {
+            const text = textInput.value.trim();
+            if (!text) {
+                setStatus('Enter some text before speaking.', 'error');
+                return;
+            }
+
+            const voices = speechSynthesis.getVoices();
+            const selectedVoice = voices[Number(voiceSelect.value)] || null;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.voice = selectedVoice;
+            utterance.pitch = Number(pitchRange.value);
+            utterance.rate = Number(rateRange.value);
+
+            utterance.onstart = () => setStatus('Speaking with cloned voice profile...', 'ok');
+            utterance.onend = () => setStatus('Done speaking.', 'ok');
+            utterance.onerror = (e) => setStatus(`Speech synthesis error: ${e.error}`, 'error');
+
+            speechSynthesis.cancel();
+            speechSynthesis.speak(utterance);
+        });
+
+        stopSpeakBtn.addEventListener('click', () => {
+            speechSynthesis.cancel();
+            setStatus('Speech stopped.', 'warn');
+        });
+
+        speechSynthesis.onvoiceschanged = populateVoices;
+        populateVoices();
     </script>
 </body>
 </html>
