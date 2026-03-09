@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Car Lane Dash</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="game-shell">
+    <h1>Car Lane Dash</h1>
+    <p class="instructions">Use ← and → (or A / D) to change lanes. Avoid traffic and beat your high score. Secret: type MARIO3DLAND during a run.</p>
+
+    <section class="hud">
+      <div>Score: <span id="score">0</span></div>
+      <div>High Score: <span id="high-score">0</span></div>
+      <div>Speed: <span id="speed">1.0x</span></div>
+    </section>
+
+    <canvas id="game" width="420" height="640" aria-label="Car game canvas"></canvas>
+
+    <button id="start-btn">Start Game</button>
+    <p id="status" aria-live="polite">Press Start Game to play.</p>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
