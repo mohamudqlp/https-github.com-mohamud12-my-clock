@@ -3,25 +3,507 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Cloner</title>
+    <title>Hands Base Video Importer</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
-        h1 { color: #333; }
-        button { margin: 10px; padding: 10px 20px; }
-        .output { margin-top: 20px; }
+        :root {
+            color-scheme: dark;
+            --bg: #09111f;
+            --panel: rgba(15, 23, 42, 0.86);
+            --panel-strong: #111c32;
+            --accent: #7c3aed;
+            --accent-2: #06b6d4;
+            --text: #e5edf8;
+            --muted: #9fb0c8;
+            --ok: #22c55e;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(124, 58, 237, 0.30), transparent 34rem),
+                radial-gradient(circle at bottom right, rgba(6, 182, 212, 0.22), transparent 30rem),
+                var(--bg);
+            color: var(--text);
+        }
+
+        main {
+            width: min(1120px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 48px 0;
+        }
+
+        .hero {
+            display: grid;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .eyebrow {
+            color: var(--accent-2);
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+        }
+
+        h1 {
+            margin: 0;
+            max-width: 780px;
+            font-size: clamp(2.35rem, 7vw, 5.4rem);
+            line-height: 0.92;
+            letter-spacing: -0.075em;
+        }
+
+        .hero p {
+            margin: 0;
+            color: var(--muted);
+            max-width: 760px;
+            font-size: 1.08rem;
+            line-height: 1.65;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+            gap: 20px;
+        }
+
+        .card {
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 28px;
+            background: linear-gradient(145deg, rgba(17, 28, 50, 0.95), rgba(15, 23, 42, 0.74));
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+            overflow: hidden;
+        }
+
+        .importer {
+            position: relative;
+            min-height: 580px;
+        }
+
+        .drop-zone {
+            position: absolute;
+            inset: 18px;
+            z-index: 3;
+            display: grid;
+            place-items: center;
+            padding: 28px;
+            border: 2px dashed rgba(148, 163, 184, 0.38);
+            border-radius: 24px;
+            background: rgba(9, 17, 31, 0.72);
+            text-align: center;
+            transition: border-color 180ms ease, transform 180ms ease, background 180ms ease;
+        }
+
+        .drop-zone.hidden { display: none; }
+        .drop-zone.drag-over {
+            border-color: var(--accent-2);
+            background: rgba(8, 145, 178, 0.16);
+            transform: scale(0.99);
+        }
+
+        .drop-zone strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.45rem;
+        }
+
+        .drop-zone span {
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .file-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 22px;
+            padding: 12px 18px;
+            border-radius: 999px;
+            border: 0;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: white;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        input[type="file"] { display: none; }
+
+        .stage {
+            position: relative;
+            height: 100%;
+            min-height: 580px;
+            background: #030712;
+        }
+
+        video,
+        canvas.overlay {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .controls {
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            bottom: 18px;
+            z-index: 2;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            padding: 12px;
+            border-radius: 20px;
+            background: rgba(3, 7, 18, 0.72);
+            backdrop-filter: blur(16px);
+        }
+
+        button {
+            border: 0;
+            border-radius: 14px;
+            padding: 10px 14px;
+            color: var(--text);
+            background: rgba(148, 163, 184, 0.18);
+            cursor: pointer;
+            font-weight: 800;
+        }
+
+        button.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+        button:disabled { cursor: not-allowed; opacity: 0.48; }
+
+        .timeline {
+            flex: 1 1 220px;
+            accent-color: var(--accent-2);
+        }
+
+        .panel { padding: 22px; }
+
+        .panel h2 {
+            margin: 0 0 12px;
+            font-size: 1.18rem;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .metric {
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(148, 163, 184, 0.10);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+        }
+
+        .metric span {
+            display: block;
+            color: var(--muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .metric strong {
+            display: block;
+            margin-top: 7px;
+            font-size: 1.1rem;
+        }
+
+        .status {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .progress-shell {
+            height: 10px;
+            margin: 18px 0 10px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(148, 163, 184, 0.16);
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--ok));
+            transition: width 120ms ease;
+        }
+
+        .hint {
+            margin: 16px 0 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.55;
+        }
+
+        @media (max-width: 860px) {
+            .workspace { grid-template-columns: 1fr; }
+            .importer, .stage { min-height: 430px; }
+        }
     </style>
 </head>
 <body>
-    <h1>Voice Cloner App</h1>
-    <button id="clone-btn">Clone Voice</button>
-    <div class="output" id="output"></div>
+    <main>
+        <section class="hero">
+            <div class="eyebrow">Optimized importer</div>
+            <h1>Hands-base video analysis for clock footage.</h1>
+            <p>Drop in a video, scrub it instantly, and let the importer sample frames around the hand base so clock-hand motion can be reviewed without loading the whole file into memory.</p>
+        </section>
+
+        <section class="workspace">
+            <div class="card importer">
+                <div class="drop-zone" id="drop-zone">
+                    <div>
+                        <strong>Import a clock-hands video</strong>
+                        <span>Drag and drop a video file here, or choose one from your device. The importer streams from a local object URL for faster startup.</span><br>
+                        <label class="file-button" for="video-input">Choose video</label>
+                        <input id="video-input" type="file" accept="video/*">
+                    </div>
+                </div>
+
+                <div class="stage">
+                    <video id="video" playsinline controls muted></video>
+                    <canvas class="overlay" id="overlay"></canvas>
+                    <div class="controls">
+                        <button id="replace-btn" type="button" disabled>Replace</button>
+                        <button class="primary" id="analyze-btn" type="button" disabled>Analyze hand base</button>
+                        <input class="timeline" id="timeline" type="range" min="0" max="1000" value="0" disabled>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="card panel">
+                <h2>Importer telemetry</h2>
+                <p class="status" id="status">Waiting for a video. Click the preview after import to move the hand-base anchor.</p>
+                <div class="progress-shell" aria-label="Analysis progress">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                <div class="metric-grid">
+                    <div class="metric"><span>File</span><strong id="file-name">None</strong></div>
+                    <div class="metric"><span>Duration</span><strong id="duration">--</strong></div>
+                    <div class="metric"><span>Resolution</span><strong id="resolution">--</strong></div>
+                    <div class="metric"><span>Motion score</span><strong id="motion-score">--</strong></div>
+                </div>
+                <p class="hint">Optimization: frames are sampled at a fixed stride from the media element into an offscreen canvas, then only a small region around the selected base is compared.</p>
+            </aside>
+        </section>
+    </main>
 
     <script>
-        document.getElementById('clone-btn').onclick = function() {
-            const outputDiv = document.getElementById('output');
-            outputDiv.innerHTML = '<p>Voice cloning feature not implemented.</p>';
-            // Here you will implement the voice cloning functionality
+        const state = {
+            objectUrl: null,
+            anchor: { x: 0.5, y: 0.5 },
+            analyzing: false,
+            previousPatch: null,
         };
+
+        const elements = {
+            analyzeButton: document.getElementById('analyze-btn'),
+            dropZone: document.getElementById('drop-zone'),
+            duration: document.getElementById('duration'),
+            fileInput: document.getElementById('video-input'),
+            fileName: document.getElementById('file-name'),
+            motionScore: document.getElementById('motion-score'),
+            overlay: document.getElementById('overlay'),
+            progressBar: document.getElementById('progress-bar'),
+            replaceButton: document.getElementById('replace-btn'),
+            resolution: document.getElementById('resolution'),
+            status: document.getElementById('status'),
+            timeline: document.getElementById('timeline'),
+            video: document.getElementById('video'),
+        };
+
+        const overlayContext = elements.overlay.getContext('2d');
+        const sampleCanvas = document.createElement('canvas');
+        const sampleContext = sampleCanvas.getContext('2d', { willReadFrequently: true });
+
+        function formatDuration(seconds) {
+            if (!Number.isFinite(seconds)) return '--';
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${remainingSeconds}`;
+        }
+
+        function setStatus(message) {
+            elements.status.textContent = message;
+        }
+
+        function setProgress(value) {
+            elements.progressBar.style.width = `${Math.min(100, Math.max(0, value))}%`;
+        }
+
+        function drawOverlay() {
+            const { overlay, video } = elements;
+            const rect = video.getBoundingClientRect();
+            overlay.width = Math.max(1, Math.round(rect.width * devicePixelRatio));
+            overlay.height = Math.max(1, Math.round(rect.height * devicePixelRatio));
+            overlayContext.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+            overlayContext.clearRect(0, 0, rect.width, rect.height);
+
+            const x = state.anchor.x * rect.width;
+            const y = state.anchor.y * rect.height;
+            overlayContext.strokeStyle = 'rgba(6, 182, 212, 0.95)';
+            overlayContext.fillStyle = 'rgba(124, 58, 237, 0.22)';
+            overlayContext.lineWidth = 2;
+            overlayContext.beginPath();
+            overlayContext.arc(x, y, 54, 0, Math.PI * 2);
+            overlayContext.fill();
+            overlayContext.stroke();
+            overlayContext.beginPath();
+            overlayContext.moveTo(x - 76, y);
+            overlayContext.lineTo(x + 76, y);
+            overlayContext.moveTo(x, y - 76);
+            overlayContext.lineTo(x, y + 76);
+            overlayContext.stroke();
+        }
+
+        function importVideo(file) {
+            if (!file || !file.type.startsWith('video/')) {
+                setStatus('Please choose a valid video file.');
+                return;
+            }
+
+            if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
+            state.objectUrl = URL.createObjectURL(file);
+            state.previousPatch = null;
+            elements.video.src = state.objectUrl;
+            elements.fileName.textContent = file.name;
+            elements.motionScore.textContent = '--';
+            elements.dropZone.classList.add('hidden');
+            elements.replaceButton.disabled = false;
+            elements.analyzeButton.disabled = true;
+            elements.timeline.disabled = true;
+            setProgress(0);
+            setStatus('Loading video metadata...');
+        }
+
+        function getBasePatch() {
+            const width = sampleCanvas.width;
+            const height = sampleCanvas.height;
+            const patchSize = Math.max(24, Math.round(Math.min(width, height) * 0.12));
+            const x = Math.min(width - patchSize, Math.max(0, Math.round(state.anchor.x * width - patchSize / 2)));
+            const y = Math.min(height - patchSize, Math.max(0, Math.round(state.anchor.y * height - patchSize / 2)));
+            return sampleContext.getImageData(x, y, patchSize, patchSize).data;
+        }
+
+        function comparePatches(previous, current) {
+            if (!previous) return 0;
+            let difference = 0;
+            for (let index = 0; index < current.length; index += 4) {
+                difference += Math.abs(current[index] - previous[index]);
+                difference += Math.abs(current[index + 1] - previous[index + 1]);
+                difference += Math.abs(current[index + 2] - previous[index + 2]);
+            }
+            return difference / (current.length * 0.75 * 255);
+        }
+
+        function seekVideo(time) {
+            return new Promise((resolve) => {
+                const handleSeeked = () => {
+                    elements.video.removeEventListener('seeked', handleSeeked);
+                    resolve();
+                };
+                elements.video.addEventListener('seeked', handleSeeked, { once: true });
+                elements.video.currentTime = Math.min(elements.video.duration, Math.max(0, time));
+            });
+        }
+
+        async function analyzeHandBase() {
+            if (state.analyzing || !Number.isFinite(elements.video.duration)) return;
+            state.analyzing = true;
+            elements.analyzeButton.disabled = true;
+            state.previousPatch = null;
+            let score = 0;
+            const samples = Math.min(72, Math.max(12, Math.round(elements.video.duration * 2)));
+            const originalTime = elements.video.currentTime;
+            sampleCanvas.width = Math.min(640, elements.video.videoWidth);
+            sampleCanvas.height = Math.round(sampleCanvas.width * (elements.video.videoHeight / elements.video.videoWidth));
+
+            for (let sample = 0; sample < samples; sample += 1) {
+                const time = (elements.video.duration * sample) / samples;
+                await seekVideo(time);
+                sampleContext.drawImage(elements.video, 0, 0, sampleCanvas.width, sampleCanvas.height);
+                const patch = getBasePatch();
+                score += comparePatches(state.previousPatch, patch);
+                state.previousPatch = patch;
+                setProgress(((sample + 1) / samples) * 100);
+                setStatus(`Analyzing hand base sample ${sample + 1} of ${samples}...`);
+            }
+
+            await seekVideo(originalTime);
+            const normalizedScore = Math.round((score / samples) * 1000) / 10;
+            elements.motionScore.textContent = `${normalizedScore}%`;
+            setStatus('Hand-base analysis complete. Move the anchor and run it again for another base point.');
+            state.analyzing = false;
+            elements.analyzeButton.disabled = false;
+            drawOverlay();
+        }
+
+        elements.fileInput.addEventListener('change', (event) => importVideo(event.target.files[0]));
+        elements.replaceButton.addEventListener('click', () => elements.fileInput.click());
+        elements.analyzeButton.addEventListener('click', analyzeHandBase);
+
+        elements.video.addEventListener('loadedmetadata', () => {
+            elements.duration.textContent = formatDuration(elements.video.duration);
+            elements.resolution.textContent = `${elements.video.videoWidth} × ${elements.video.videoHeight}`;
+            elements.analyzeButton.disabled = false;
+            elements.timeline.disabled = false;
+            setStatus('Video ready. Click the preview to place the hand-base anchor, then analyze.');
+            drawOverlay();
+        });
+
+        elements.video.addEventListener('timeupdate', () => {
+            if (!state.analyzing && Number.isFinite(elements.video.duration)) {
+                elements.timeline.value = Math.round((elements.video.currentTime / elements.video.duration) * 1000);
+            }
+        });
+
+        elements.timeline.addEventListener('input', () => {
+            if (Number.isFinite(elements.video.duration)) {
+                elements.video.currentTime = (Number(elements.timeline.value) / 1000) * elements.video.duration;
+            }
+        });
+
+        elements.overlay.addEventListener('click', (event) => {
+            const rect = elements.overlay.getBoundingClientRect();
+            state.anchor.x = (event.clientX - rect.left) / rect.width;
+            state.anchor.y = (event.clientY - rect.top) / rect.height;
+            elements.motionScore.textContent = '--';
+            setProgress(0);
+            setStatus('Hand-base anchor updated. Run analysis to score motion around this point.');
+            drawOverlay();
+        });
+
+        ['dragenter', 'dragover'].forEach((eventName) => {
+            elements.dropZone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                elements.dropZone.classList.add('drag-over');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach((eventName) => {
+            elements.dropZone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                elements.dropZone.classList.remove('drag-over');
+            });
+        });
+
+        elements.dropZone.addEventListener('drop', (event) => importVideo(event.dataTransfer.files[0]));
+        window.addEventListener('resize', drawOverlay);
+        window.addEventListener('beforeunload', () => {
+            if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
+        });
     </script>
 </body>
 </html>
