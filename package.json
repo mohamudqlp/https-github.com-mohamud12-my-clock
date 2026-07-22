@@ -1,0 +1,11 @@
+{
+  "name": "ai4animationpy-local-controls",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local browser controls demo inspired by AI4AnimationPy character locomotion.",
+  "scripts": {
+    "start": "python3 -m http.server 5173",
+    "dev": "python3 -m http.server 5173",
+    "check": "node --check app.js"
+  }
+}
