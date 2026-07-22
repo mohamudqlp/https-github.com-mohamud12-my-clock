@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI4AnimationPy Local Controls</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Local interactive controller</p>
+        <h1>AI4AnimationPy motion sandbox</h1>
+        <p class="lede">Run a lightweight browser demo locally and drive a procedural character with animation controls inspired by AI4AnimationPy locomotion demos.</p>
+      </div>
+      <div class="status-card">
+        <span class="pulse"></span>
+        <div>
+          <strong id="runtime-state">Paused</strong>
+          <small>Use keyboard or sliders below</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="stage-card">
+      <canvas id="stage" width="960" height="540" aria-label="Interactive character animation canvas"></canvas>
+      <div class="hud">
+        <span>W/A/S/D or arrows: move</span>
+        <span>Space: pause</span>
+        <span>R: reset</span>
+      </div>
+    </section>
+
+    <section class="controls" aria-label="Animation controls">
+      <div class="control-row">
+        <button id="play-pause" class="primary">▶ Play</button>
+        <button id="reset">Reset</button>
+        <button id="randomize">Randomize Motion</button>
+      </div>
+
+      <label>Direction <output id="direction-value">0°</output>
+        <input id="direction" type="range" min="-180" max="180" value="0" />
+      </label>
+      <label>Speed <output id="speed-value">1.0 m/s</output>
+        <input id="speed" type="range" min="0" max="3" step="0.1" value="1" />
+      </label>
+      <label>Stride <output id="stride-value">1.0x</output>
+        <input id="stride" type="range" min="0.4" max="1.8" step="0.1" value="1" />
+      </label>
+      <label>Style <output id="style-value">Balanced</output>
+        <select id="style">
+          <option value="balanced">Balanced</option>
+          <option value="stealth">Stealth</option>
+          <option value="athletic">Athletic</option>
+          <option value="robotic">Robotic</option>
+        </select>
+      </label>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
