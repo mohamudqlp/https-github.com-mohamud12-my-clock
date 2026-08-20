@@ -166,25 +166,49 @@
     </div>
 
     <script>
-        const textInput = document.getElementById('text-input');
-        const voiceSelect = document.getElementById('voice-select');
-        const cloneBtn = document.getElementById('clone-btn');
-        const stopBtn = document.getElementById('stop-btn');
-        const outputDiv = document.getElementById('output');
-        const statusDiv = document.getElementById('status');
-        const audioOutput = document.getElementById('audio-output');
-        const pitchSlider = document.getElementById('pitch');
-        const rateSlider = document.getElementById('rate');
-        const pitchValue = document.getElementById('pitch-value');
-        const rateValue = document.getElementById('rate-value');
+        const $ = (id) => document.getElementById(id);
+
+        const textInput = $('text-input');
+        const voiceSelect = $('voice-select');
+        const cloneBtn = $('clone-btn');
+        const stopBtn = $('stop-btn');
+        const outputDiv = $('output');
+        const statusDiv = $('status');
+        const audioOutput = $('audio-output');
+        const pitchSlider = $('pitch');
+        const rateSlider = $('rate');
 
         let synth = window.speechSynthesis;
         let currentUtterance = null;
 
+        const PLACEHOLDER_OPTION = '<option value="">Select a voice...</option>';
+
+        // Show a status message in the output panel; variant is '', 'error' or 'success'
+        function setStatus(message, variant = '') {
+            statusDiv.textContent = message;
+            statusDiv.className = variant ? `status ${variant}` : 'status';
+            outputDiv.classList.add('active');
+        }
+
+        // Toggle the clone/stop button pair
+        function setSpeaking(speaking) {
+            cloneBtn.disabled = speaking;
+            stopBtn.style.display = speaking ? 'inline-block' : 'none';
+        }
+
+        // Mirror a range input's value into its label
+        function bindSliderDisplay(slider, valueId) {
+            const valueSpan = $(valueId);
+            valueSpan.textContent = slider.value;
+            slider.addEventListener('input', (e) => {
+                valueSpan.textContent = e.target.value;
+            });
+        }
+
         // Populate voices
         function populateVoices() {
             const voices = synth.getVoices();
-            voiceSelect.innerHTML = '<option value="">Select a voice...</option>';
+            voiceSelect.innerHTML = PLACEHOLDER_OPTION;
             voices.forEach((voice, index) => {
                 const option = document.createElement('option');
                 option.value = index;
@@ -196,41 +220,28 @@
         synth.onvoiceschanged = populateVoices;
         populateVoices();
 
-        // Update slider values display
-        pitchSlider.addEventListener('input', (e) => {
-            pitchValue.textContent = e.target.value;
-        });
-
-        rateSlider.addEventListener('input', (e) => {
-            rateValue.textContent = e.target.value;
-        });
+        bindSliderDisplay(pitchSlider, 'pitch-value');
+        bindSliderDisplay(rateSlider, 'rate-value');
 
         // Clone voice function
         cloneBtn.addEventListener('click', function() {
             const text = textInput.value.trim();
             
             if (!text) {
-                statusDiv.textContent = 'Please enter some text!';
-                statusDiv.className = 'status error';
-                outputDiv.classList.add('active');
+                setStatus('Please enter some text!', 'error');
                 return;
             }
 
             if (!voiceSelect.value) {
-                statusDiv.textContent = 'Please select a voice!';
-                statusDiv.className = 'status error';
-                outputDiv.classList.add('active');
+                setStatus('Please select a voice!', 'error');
                 return;
             }
 
             // Stop any ongoing speech
             synth.cancel();
 
-            statusDiv.textContent = 'Cloning voice...';
-            statusDiv.className = 'status';
-            outputDiv.classList.add('active');
-            cloneBtn.disabled = true;
-            stopBtn.style.display = 'inline-block';
+            setStatus('Cloning voice...');
+            setSpeaking(true);
 
             // Create utterance
             currentUtterance = new SpeechSynthesisUtterance(text);
@@ -245,22 +256,17 @@
             currentUtterance.rate = parseFloat(rateSlider.value);
 
             currentUtterance.onstart = () => {
-                statusDiv.textContent = '🎙️ Voice is being synthesized...';
-                statusDiv.className = 'status';
+                setStatus('🎙️ Voice is being synthesized...');
             };
 
             currentUtterance.onend = () => {
-                statusDiv.textContent = '✅ Voice cloning complete!';
-                statusDiv.className = 'status success';
-                cloneBtn.disabled = false;
-                stopBtn.style.display = 'none';
+                setStatus('✅ Voice cloning complete!', 'success');
+                setSpeaking(false);
             };
 
             currentUtterance.onerror = (event) => {
-                statusDiv.textContent = `❌ Error: ${event.error}`;
-                statusDiv.className = 'status error';
-                cloneBtn.disabled = false;
-                stopBtn.style.display = 'none';
+                setStatus(`❌ Error: ${event.error}`, 'error');
+                setSpeaking(false);
             };
 
             synth.speak(currentUtterance);
@@ -269,10 +275,8 @@
         // Stop button
         stopBtn.addEventListener('click', function() {
             synth.cancel();
-            statusDiv.textContent = '⏸️ Voice cloning stopped';
-            statusDiv.className = 'status';
-            cloneBtn.disabled = false;
-            stopBtn.style.display = 'none';
+            setStatus('⏸️ Voice cloning stopped');
+            setSpeaking(false);
         });
 
         // Allow Enter key to trigger clone
