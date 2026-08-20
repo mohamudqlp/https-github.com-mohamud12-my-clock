@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; media-src 'self' blob:; base-uri 'none'; form-action 'none'">
+    <meta name="referrer" content="no-referrer">
     <title>Voice Cloner</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -117,6 +119,8 @@
                 type="text" 
                 id="text-input" 
                 placeholder="Enter text to synthesize..." 
+                maxlength="1000"
+                autocomplete="off"
                 value="Hello, this is a voice cloning demo"
             >
         </div>
@@ -181,6 +185,14 @@
         let synth = window.speechSynthesis;
         let currentUtterance = null;
 
+        const MAX_TEXT_LENGTH = 1000;
+
+        function clamp(value, min, max, fallback) {
+            const parsed = parseFloat(value);
+            if (!Number.isFinite(parsed)) return fallback;
+            return Math.min(max, Math.max(min, parsed));
+        }
+
         // Populate voices
         function populateVoices() {
             const voices = synth.getVoices();
@@ -207,7 +219,7 @@
 
         // Clone voice function
         cloneBtn.addEventListener('click', function() {
-            const text = textInput.value.trim();
+            const text = textInput.value.trim().slice(0, MAX_TEXT_LENGTH);
             
             if (!text) {
                 statusDiv.textContent = 'Please enter some text!';
@@ -234,15 +246,15 @@
 
             // Create utterance
             currentUtterance = new SpeechSynthesisUtterance(text);
-            const selectedVoiceIndex = voiceSelect.value;
+            const selectedVoiceIndex = Number.parseInt(voiceSelect.value, 10);
             const voices = synth.getVoices();
             
-            if (selectedVoiceIndex < voices.length) {
+            if (Number.isInteger(selectedVoiceIndex) && selectedVoiceIndex >= 0 && selectedVoiceIndex < voices.length) {
                 currentUtterance.voice = voices[selectedVoiceIndex];
             }
 
-            currentUtterance.pitch = parseFloat(pitchSlider.value);
-            currentUtterance.rate = parseFloat(rateSlider.value);
+            currentUtterance.pitch = clamp(pitchSlider.value, 0.5, 2, 1);
+            currentUtterance.rate = clamp(rateSlider.value, 0.5, 2, 1);
 
             currentUtterance.onstart = () => {
                 statusDiv.textContent = '🎙️ Voice is being synthesized...';
