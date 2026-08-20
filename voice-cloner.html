@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Cloner</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 { 
+            color: #333; 
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #clone-btn {
+            background: #667eea;
+            color: white;
+        }
+        #clone-btn:hover { background: #5568d3; }
+        #clone-btn:disabled { 
+            background: #ccc; 
+            cursor: not-allowed;
+        }
+        #stop-btn {
+            background: #ff6b6b;
+            color: white;
+        }
+        #stop-btn:hover { background: #ee5a52; }
+        .output {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            display: none;
+        }
+        .output.active {
+            display: block;
+        }
+        .status {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        .success {
+            color: #51cf66;
+        }
+        audio {
+            width: 100%;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Voice Cloner App</h1>
+        
+        <div class="input-group">
+            <label for="text-input">Text to Clone:</label>
+            <input 
+                type="text" 
+                id="text-input" 
+                placeholder="Enter text to synthesize..." 
+                value="Hello, this is a voice cloning demo"
+            >
+        </div>
+
+        <div class="input-group">
+            <label for="voice-select">Voice:</label>
+            <select id="voice-select">
+                <option value="">Select a voice...</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="pitch">Pitch: <span id="pitch-value">1</span></label>
+            <input 
+                type="range" 
+                id="pitch" 
+                min="0.5" 
+                max="2" 
+                step="0.1" 
+                value="1"
+                style="width: 100%;"
+            >
+        </div>
+
+        <div class="input-group">
+            <label for="rate">Speed: <span id="rate-value">1</span></label>
+            <input 
+                type="range" 
+                id="rate" 
+                min="0.5" 
+                max="2" 
+                step="0.1" 
+                value="1"
+                style="width: 100%;"
+            >
+        </div>
+
+        <div class="button-group">
+            <button id="clone-btn">Clone Voice</button>
+            <button id="stop-btn" style="display:none;">Stop</button>
+        </div>
+
+        <div class="output" id="output">
+            <div class="status" id="status"></div>
+            <audio id="audio-output" controls></audio>
+        </div>
+    </div>
+
+    <script>
+        const textInput = document.getElementById('text-input');
+        const voiceSelect = document.getElementById('voice-select');
+        const cloneBtn = document.getElementById('clone-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const outputDiv = document.getElementById('output');
+        const statusDiv = document.getElementById('status');
+        const audioOutput = document.getElementById('audio-output');
+        const pitchSlider = document.getElementById('pitch');
+        const rateSlider = document.getElementById('rate');
+        const pitchValue = document.getElementById('pitch-value');
+        const rateValue = document.getElementById('rate-value');
+
+        let synth = window.speechSynthesis;
+        let currentUtterance = null;
+
+        // Populate voices
+        function populateVoices() {
+            const voices = synth.getVoices();
+            voiceSelect.innerHTML = '<option value="">Select a voice...</option>';
+            voices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                voiceSelect.appendChild(option);
+            });
+        }
+
+        synth.onvoiceschanged = populateVoices;
+        populateVoices();
+
+        // Update slider values display
+        pitchSlider.addEventListener('input', (e) => {
+            pitchValue.textContent = e.target.value;
+        });
+
+        rateSlider.addEventListener('input', (e) => {
+            rateValue.textContent = e.target.value;
+        });
+
+        // Clone voice function
+        cloneBtn.addEventListener('click', function() {
+            const text = textInput.value.trim();
+            
+            if (!text) {
+                statusDiv.textContent = 'Please enter some text!';
+                statusDiv.className = 'status error';
+                outputDiv.classList.add('active');
+                return;
+            }
+
+            if (!voiceSelect.value) {
+                statusDiv.textContent = 'Please select a voice!';
+                statusDiv.className = 'status error';
+                outputDiv.classList.add('active');
+                return;
+            }
+
+            // Stop any ongoing speech
+            synth.cancel();
+
+            statusDiv.textContent = 'Cloning voice...';
+            statusDiv.className = 'status';
+            outputDiv.classList.add('active');
+            cloneBtn.disabled = true;
+            stopBtn.style.display = 'inline-block';
+
+            // Create utterance
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            const selectedVoiceIndex = voiceSelect.value;
+            const voices = synth.getVoices();
+            
+            if (selectedVoiceIndex < voices.length) {
+                currentUtterance.voice = voices[selectedVoiceIndex];
+            }
+
+            currentUtterance.pitch = parseFloat(pitchSlider.value);
+            currentUtterance.rate = parseFloat(rateSlider.value);
+
+            currentUtterance.onstart = () => {
+                statusDiv.textContent = '🎙️ Voice is being synthesized...';
+                statusDiv.className = 'status';
+            };
+
+            currentUtterance.onend = () => {
+                statusDiv.textContent = '✅ Voice cloning complete!';
+                statusDiv.className = 'status success';
+                cloneBtn.disabled = false;
+                stopBtn.style.display = 'none';
+            };
+
+            currentUtterance.onerror = (event) => {
+                statusDiv.textContent = `❌ Error: ${event.error}`;
+                statusDiv.className = 'status error';
+                cloneBtn.disabled = false;
+                stopBtn.style.display = 'none';
+            };
+
+            synth.speak(currentUtterance);
+        });
+
+        // Stop button
+        stopBtn.addEventListener('click', function() {
+            synth.cancel();
+            statusDiv.textContent = '⏸️ Voice cloning stopped';
+            statusDiv.className = 'status';
+            cloneBtn.disabled = false;
+            stopBtn.style.display = 'none';
+        });
+
+        // Allow Enter key to trigger clone
+        textInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                cloneBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>

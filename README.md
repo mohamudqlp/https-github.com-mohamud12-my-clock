@@ -18,3 +18,13 @@ A lightweight browser car game built with plain HTML, CSS, and JavaScript.
 ## Run locally
 
 Open `index.html` in your browser.
+
+## Tests
+
+Install dependencies and run the unit tests:
+
+```sh
+npm install
+npm test
+npm run test:coverage
+```
