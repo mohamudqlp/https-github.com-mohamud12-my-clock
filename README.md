@@ -10,3 +10,5 @@ npm install
 npm test
 npm run test:coverage
 ```
+
+The standalone video player is available at `video-player.html` and uses the same test suite.
