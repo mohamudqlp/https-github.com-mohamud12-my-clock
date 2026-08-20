@@ -178,12 +178,46 @@
         const pitchValue = document.getElementById('pitch-value');
         const rateValue = document.getElementById('rate-value');
 
-        let synth = window.speechSynthesis;
-        let currentUtterance = null;
+        const synth = window.speechSynthesis;
+        let cancelCurrent = () => {};
+
+        function showStatus(message, kind) {
+            statusDiv.textContent = message;
+            statusDiv.className = kind ? `status ${kind}` : 'status';
+            outputDiv.classList.add('active');
+        }
+
+        function reportError(message, error) {
+            if (error) {
+                console.error(message, error);
+            } else {
+                console.error(message);
+            }
+            showStatus(`❌ ${message}`, 'error');
+        }
+
+        function resetControls() {
+            cloneBtn.disabled = false;
+            stopBtn.style.display = 'none';
+        }
+
+        if (!synth || typeof SpeechSynthesisUtterance === 'undefined') {
+            cloneBtn.disabled = true;
+            voiceSelect.disabled = true;
+            reportError('Speech synthesis is not supported in this browser.');
+            throw new Error('SpeechSynthesis API unavailable');
+        }
 
         // Populate voices
         function populateVoices() {
-            const voices = synth.getVoices();
+            let voices;
+            try {
+                voices = synth.getVoices();
+            } catch (error) {
+                reportError('Could not load the list of available voices.', error);
+                return;
+            }
+
             voiceSelect.innerHTML = '<option value="">Select a voice...</option>';
             voices.forEach((voice, index) => {
                 const option = document.createElement('option');
@@ -191,6 +225,10 @@
                 option.textContent = `${voice.name} (${voice.lang})`;
                 voiceSelect.appendChild(option);
             });
+
+            if (voices.length === 0) {
+                showStatus('No voices are available yet. They may still be loading.', 'error');
+            }
         }
 
         synth.onvoiceschanged = populateVoices;
@@ -210,69 +248,99 @@
             const text = textInput.value.trim();
             
             if (!text) {
-                statusDiv.textContent = 'Please enter some text!';
-                statusDiv.className = 'status error';
-                outputDiv.classList.add('active');
+                showStatus('Please enter some text!', 'error');
                 return;
             }
 
             if (!voiceSelect.value) {
-                statusDiv.textContent = 'Please select a voice!';
-                statusDiv.className = 'status error';
-                outputDiv.classList.add('active');
+                showStatus('Please select a voice!', 'error');
+                return;
+            }
+
+            let voices;
+            try {
+                voices = synth.getVoices();
+            } catch (error) {
+                reportError('Could not load the list of available voices.', error);
+                return;
+            }
+
+            const selectedVoiceIndex = Number(voiceSelect.value);
+            const selectedVoice = voices[selectedVoiceIndex];
+            if (!Number.isInteger(selectedVoiceIndex) || !selectedVoice) {
+                populateVoices();
+                reportError('The selected voice is no longer available. Please pick another voice.');
+                return;
+            }
+
+            const pitch = parseFloat(pitchSlider.value);
+            const rate = parseFloat(rateSlider.value);
+            if (Number.isNaN(pitch) || Number.isNaN(rate)) {
+                reportError('Pitch and speed must be valid numbers.');
                 return;
             }
 
             // Stop any ongoing speech
-            synth.cancel();
+            try {
+                cancelCurrent();
+                synth.cancel();
+            } catch (error) {
+                reportError('Could not stop the previous synthesis.', error);
+                resetControls();
+                return;
+            }
 
-            statusDiv.textContent = 'Cloning voice...';
-            statusDiv.className = 'status';
-            outputDiv.classList.add('active');
+            showStatus('Cloning voice...');
             cloneBtn.disabled = true;
             stopBtn.style.display = 'inline-block';
 
-            // Create utterance
-            currentUtterance = new SpeechSynthesisUtterance(text);
-            const selectedVoiceIndex = voiceSelect.value;
-            const voices = synth.getVoices();
-            
-            if (selectedVoiceIndex < voices.length) {
-                currentUtterance.voice = voices[selectedVoiceIndex];
+            const utterance = new SpeechSynthesisUtterance(text);
+            let cancelled = false;
+            cancelCurrent = () => { cancelled = true; };
+
+            utterance.voice = selectedVoice;
+            utterance.pitch = pitch;
+            utterance.rate = rate;
+
+            utterance.onstart = () => {
+                showStatus('🎙️ Voice is being synthesized...');
+            };
+
+            utterance.onend = () => {
+                if (!cancelled) {
+                    showStatus('✅ Voice cloning complete!', 'success');
+                }
+                resetControls();
+            };
+
+            utterance.onerror = (event) => {
+                resetControls();
+                if (cancelled && (event.error === 'canceled' || event.error === 'interrupted')) {
+                    console.info(`Synthesis ${event.error} by user request`);
+                    return;
+                }
+                reportError(`Synthesis failed: ${event.error || 'unknown error'}`, event);
+            };
+
+            try {
+                synth.speak(utterance);
+            } catch (error) {
+                reportError('Could not start speech synthesis.', error);
+                resetControls();
             }
-
-            currentUtterance.pitch = parseFloat(pitchSlider.value);
-            currentUtterance.rate = parseFloat(rateSlider.value);
-
-            currentUtterance.onstart = () => {
-                statusDiv.textContent = '🎙️ Voice is being synthesized...';
-                statusDiv.className = 'status';
-            };
-
-            currentUtterance.onend = () => {
-                statusDiv.textContent = '✅ Voice cloning complete!';
-                statusDiv.className = 'status success';
-                cloneBtn.disabled = false;
-                stopBtn.style.display = 'none';
-            };
-
-            currentUtterance.onerror = (event) => {
-                statusDiv.textContent = `❌ Error: ${event.error}`;
-                statusDiv.className = 'status error';
-                cloneBtn.disabled = false;
-                stopBtn.style.display = 'none';
-            };
-
-            synth.speak(currentUtterance);
         });
 
         // Stop button
         stopBtn.addEventListener('click', function() {
-            synth.cancel();
-            statusDiv.textContent = '⏸️ Voice cloning stopped';
-            statusDiv.className = 'status';
-            cloneBtn.disabled = false;
-            stopBtn.style.display = 'none';
+            try {
+                cancelCurrent();
+                synth.cancel();
+                showStatus('⏸️ Voice cloning stopped');
+            } catch (error) {
+                reportError('Could not stop speech synthesis.', error);
+            } finally {
+                resetControls();
+            }
         });
 
         // Allow Enter key to trigger clone
