@@ -1,286 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Cloner</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .container {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            padding: 40px;
-            max-width: 600px;
-            width: 100%;
-        }
-        h1 { 
-            color: #333; 
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        .input-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-        }
-        input[type="text"],
-        select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-        input[type="text"]:focus,
-        select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 25px;
-        }
-        button {
-            flex: 1;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 5px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        #clone-btn {
-            background: #667eea;
-            color: white;
-        }
-        #clone-btn:hover { background: #5568d3; }
-        #clone-btn:disabled { 
-            background: #ccc; 
-            cursor: not-allowed;
-        }
-        #stop-btn {
-            background: #ff6b6b;
-            color: white;
-        }
-        #stop-btn:hover { background: #ee5a52; }
-        .output {
-            margin-top: 25px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            display: none;
-        }
-        .output.active {
-            display: block;
-        }
-        .status {
-            color: #667eea;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        .error {
-            color: #ff6b6b;
-        }
-        .success {
-            color: #51cf66;
-        }
-        audio {
-            width: 100%;
-            margin-top: 15px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sky Hopper</title>
+  <style>
+    :root { --ink: #14213d; --yellow: #ffc700; --coral: #ff5d5d; --sky: #8cdcff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; overflow: hidden; font-family: Arial, sans-serif; color: var(--ink); background: #f7c85b; }
+    .game-shell { width: min(100%, 480px); height: min(100vh, 780px); position: relative; overflow: hidden; isolation: isolate; background: linear-gradient(#78d5f7 0 67%, #d7f4ff 67% 76%, #81c34b 76%); border: 8px solid #fff8dc; box-shadow: 0 12px 0 #b47626, 0 24px 45px rgba(74, 55, 20, .28); }
+    .cloud { position: absolute; width: 96px; height: 28px; background: #fff; border-radius: 50px; opacity: .9; z-index: 1; }
+    .cloud::before, .cloud::after { content: ''; position: absolute; bottom: 7px; background: #fff; border-radius: 50%; }
+    .cloud::before { width: 42px; height: 42px; left: 14px; } .cloud::after { width: 34px; height: 34px; right: 13px; }
+    .cloud-a { top: 125px; left: 35px; transform: scale(.62); } .cloud-b { top: 260px; right: 28px; transform: scale(.92); } .cloud-c { top: 58px; right: 70px; transform: scale(.42); }
+    .hud { position: absolute; z-index: 8; top: 22px; left: 24px; right: 24px; display: flex; justify-content: space-between; align-items: flex-start; font-weight: 900; }
+    .score-box { text-align: center; color: white; text-shadow: 0 3px 0 #397d9f; } .score { font-size: 50px; line-height: .8; letter-spacing: -3px; } .score-label { margin-top: 8px; font-size: 11px; letter-spacing: 1.8px; }
+    .best { padding: 9px 10px 8px; background: rgba(255,255,255,.82); border: 3px solid white; border-radius: 12px; box-shadow: 0 3px 0 rgba(54,104,125,.2); font-size: 11px; letter-spacing: 1px; text-align: center; } .best strong { display: block; margin-top: 3px; color: #ee7b32; font-size: 20px; letter-spacing: 0; }
+    .bird { position: absolute; z-index: 5; width: 52px; height: 40px; left: 90px; top: 320px; border: 3px solid var(--ink); border-radius: 55% 52% 48% 52%; background: var(--yellow); box-shadow: inset -6px -5px 0 #ee9d00; transform-origin: center; transition: transform .08s linear; }
+    .bird::before { content: ''; position: absolute; width: 23px; height: 15px; left: -13px; top: 17px; border: 3px solid var(--ink); border-radius: 60% 15% 55% 50%; background: #f7a928; transform: rotate(-25deg); }
+    .bird::after { content: ''; position: absolute; width: 13px; height: 13px; right: 8px; top: 7px; border-radius: 50%; background: white; border: 3px solid var(--ink); box-shadow: 3px 1px 0 -1px var(--ink); }
+    .beak { position: absolute; z-index: 6; left: 136px; top: 336px; width: 0; height: 0; border-top: 9px solid transparent; border-bottom: 9px solid transparent; border-left: 17px solid var(--coral); filter: drop-shadow(2px 0 var(--ink)); }
+    .pipe { position: absolute; z-index: 4; width: 68px; background: #53ba5e; border: 3px solid #236b3c; box-shadow: inset 8px 0 #81d770, inset -8px 0 #258c49; }
+    .pipe::after { content: ''; position: absolute; left: -8px; width: 78px; height: 26px; border: 3px solid #236b3c; background: #68ca67; box-shadow: inset 8px 0 #94e577, inset -8px 0 #319e4e; }
+    .pipe.top { top: 0; } .pipe.top::after { bottom: 0; } .pipe.bottom { bottom: 88px; } .pipe.bottom::after { top: 0; }
+    .ground { position: absolute; z-index: 7; inset: auto 0 0; height: 89px; border-top: 5px solid #498d35; background: repeating-linear-gradient(135deg, #75bd45 0 18px, #8dcc52 18px 36px); }
+    .ground::after { content: ''; position: absolute; inset: 14px 0 0; border-top: 5px solid #e4bb50; background: #cf8d43; }
+    .panel { position: absolute; z-index: 10; inset: 0; display: grid; place-items: center; padding: 26px; background: linear-gradient(rgba(54,173,220,.04), rgba(54,173,220,.18)); }
+    .card { width: min(100%, 330px); padding: 26px 22px 20px; text-align: center; background: #fff9e7; border: 4px solid white; border-radius: 22px; box-shadow: 0 8px 0 rgba(31,96,123,.23), 0 15px 35px rgba(20,68,91,.2); }
+    .eyebrow { margin: 0 0 9px; color: #ed7c31; font-size: 12px; font-weight: 900; letter-spacing: 2px; } h1 { margin: 0; font-size: 37px; letter-spacing: -2px; } .card p { margin: 13px 0 21px; line-height: 1.45; font-size: 14px; font-weight: bold; }
+    button { width: 100%; padding: 15px; border: 0; border-radius: 12px; cursor: pointer; color: var(--ink); background: var(--yellow); box-shadow: 0 5px 0 #d69100; font-size: 16px; font-weight: 900; letter-spacing: .5px; } button:active { transform: translateY(4px); box-shadow: 0 1px 0 #d69100; } .tips { margin: 17px 0 0; color: #5d715d; font-size: 11px; font-weight: bold; }
+    .hidden { display: none; }
+    @media (max-width: 500px) { .game-shell { border-width: 0; width: 100vw; height: 100vh; } }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎙️ Voice Cloner App</h1>
-        
-        <div class="input-group">
-            <label for="text-input">Text to Clone:</label>
-            <input 
-                type="text" 
-                id="text-input" 
-                placeholder="Enter text to synthesize..." 
-                value="Hello, this is a voice cloning demo"
-            >
-        </div>
-
-        <div class="input-group">
-            <label for="voice-select">Voice:</label>
-            <select id="voice-select">
-                <option value="">Select a voice...</option>
-            </select>
-        </div>
-
-        <div class="input-group">
-            <label for="pitch">Pitch: <span id="pitch-value">1</span></label>
-            <input 
-                type="range" 
-                id="pitch" 
-                min="0.5" 
-                max="2" 
-                step="0.1" 
-                value="1"
-                style="width: 100%;"
-            >
-        </div>
-
-        <div class="input-group">
-            <label for="rate">Speed: <span id="rate-value">1</span></label>
-            <input 
-                type="range" 
-                id="rate" 
-                min="0.5" 
-                max="2" 
-                step="0.1" 
-                value="1"
-                style="width: 100%;"
-            >
-        </div>
-
-        <div class="button-group">
-            <button id="clone-btn">Clone Voice</button>
-            <button id="stop-btn" style="display:none;">Stop</button>
-        </div>
-
-        <div class="output" id="output">
-            <div class="status" id="status"></div>
-            <audio id="audio-output" controls></audio>
-        </div>
-    </div>
-
-    <script>
-        const textInput = document.getElementById('text-input');
-        const voiceSelect = document.getElementById('voice-select');
-        const cloneBtn = document.getElementById('clone-btn');
-        const stopBtn = document.getElementById('stop-btn');
-        const outputDiv = document.getElementById('output');
-        const statusDiv = document.getElementById('status');
-        const audioOutput = document.getElementById('audio-output');
-        const pitchSlider = document.getElementById('pitch');
-        const rateSlider = document.getElementById('rate');
-        const pitchValue = document.getElementById('pitch-value');
-        const rateValue = document.getElementById('rate-value');
-
-        let synth = window.speechSynthesis;
-        let currentUtterance = null;
-
-        // Populate voices
-        function populateVoices() {
-            const voices = synth.getVoices();
-            voiceSelect.innerHTML = '<option value="">Select a voice...</option>';
-            voices.forEach((voice, index) => {
-                const option = document.createElement('option');
-                option.value = index;
-                option.textContent = `${voice.name} (${voice.lang})`;
-                voiceSelect.appendChild(option);
-            });
-        }
-
-        synth.onvoiceschanged = populateVoices;
-        populateVoices();
-
-        // Update slider values display
-        pitchSlider.addEventListener('input', (e) => {
-            pitchValue.textContent = e.target.value;
-        });
-
-        rateSlider.addEventListener('input', (e) => {
-            rateValue.textContent = e.target.value;
-        });
-
-        // Clone voice function
-        cloneBtn.addEventListener('click', function() {
-            const text = textInput.value.trim();
-            
-            if (!text) {
-                statusDiv.textContent = 'Please enter some text!';
-                statusDiv.className = 'status error';
-                outputDiv.classList.add('active');
-                return;
-            }
-
-            if (!voiceSelect.value) {
-                statusDiv.textContent = 'Please select a voice!';
-                statusDiv.className = 'status error';
-                outputDiv.classList.add('active');
-                return;
-            }
-
-            // Stop any ongoing speech
-            synth.cancel();
-
-            statusDiv.textContent = 'Cloning voice...';
-            statusDiv.className = 'status';
-            outputDiv.classList.add('active');
-            cloneBtn.disabled = true;
-            stopBtn.style.display = 'inline-block';
-
-            // Create utterance
-            currentUtterance = new SpeechSynthesisUtterance(text);
-            const selectedVoiceIndex = voiceSelect.value;
-            const voices = synth.getVoices();
-            
-            if (selectedVoiceIndex < voices.length) {
-                currentUtterance.voice = voices[selectedVoiceIndex];
-            }
-
-            currentUtterance.pitch = parseFloat(pitchSlider.value);
-            currentUtterance.rate = parseFloat(rateSlider.value);
-
-            currentUtterance.onstart = () => {
-                statusDiv.textContent = '🎙️ Voice is being synthesized...';
-                statusDiv.className = 'status';
-            };
-
-            currentUtterance.onend = () => {
-                statusDiv.textContent = '✅ Voice cloning complete!';
-                statusDiv.className = 'status success';
-                cloneBtn.disabled = false;
-                stopBtn.style.display = 'none';
-            };
-
-            currentUtterance.onerror = (event) => {
-                statusDiv.textContent = `❌ Error: ${event.error}`;
-                statusDiv.className = 'status error';
-                cloneBtn.disabled = false;
-                stopBtn.style.display = 'none';
-            };
-
-            synth.speak(currentUtterance);
-        });
-
-        // Stop button
-        stopBtn.addEventListener('click', function() {
-            synth.cancel();
-            statusDiv.textContent = '⏸️ Voice cloning stopped';
-            statusDiv.className = 'status';
-            cloneBtn.disabled = false;
-            stopBtn.style.display = 'none';
-        });
-
-        // Allow Enter key to trigger clone
-        textInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                cloneBtn.click();
-            }
-        });
-    </script>
+  <main class="game-shell" aria-label="Sky Hopper arcade game">
+    <div class="cloud cloud-a"></div><div class="cloud cloud-b"></div><div class="cloud cloud-c"></div>
+    <header class="hud"><div class="score-box"><div class="score" id="score">0</div><div class="score-label">SCORE</div></div><div class="best">BEST<strong id="best">0</strong></div></header>
+    <div class="bird" id="bird" aria-label="Bird"></div><div class="beak" id="beak"></div>
+    <div class="ground"></div>
+    <section class="panel" id="panel"><div class="card"><p class="eyebrow" id="panel-kicker">ARCADE FLIGHT</p><h1 id="panel-title">Sky Hopper</h1><p id="panel-copy">Thread the gaps, beat your best, and keep the little yellow hopper in the sky.</p><button id="start-button" type="button">START FLYING</button><div class="tips">PRESS SPACE, ↑, OR TAP TO FLAP</div></div></section>
+  </main>
+  <script>
+    (() => {
+      const game = document.querySelector('.game-shell'); const bird = document.querySelector('#bird'); const beak = document.querySelector('#beak'); const scoreEl = document.querySelector('#score'); const bestEl = document.querySelector('#best'); const panel = document.querySelector('#panel'); const title = document.querySelector('#panel-title'); const kicker = document.querySelector('#panel-kicker'); const copy = document.querySelector('#panel-copy'); const start = document.querySelector('#start-button');
+      const state = { running: false, birdY: 320, velocity: 0, score: 0, pipes: [], lastTime: 0, spawnAt: 0, best: Number(localStorage.getItem('skyHopperBest') || 0) };
+      bestEl.textContent = state.best;
+      const flap = () => { if (state.running) state.velocity = -8.2; };
+      const reset = () => { state.birdY = 320; state.velocity = 0; state.score = 0; state.pipes.forEach(p => p.el.remove()); state.pipes = []; scoreEl.textContent = '0'; bird.style.top = '320px'; beak.style.top = '336px'; bird.style.transform = 'rotate(0deg)'; };
+      const addPipe = () => { const gap = 165; const topHeight = 110 + Math.random() * 250; const x = game.clientWidth + 20; const top = document.createElement('div'); const bottom = document.createElement('div'); top.className = 'pipe top'; bottom.className = 'pipe bottom'; top.style.cssText += `height:${topHeight}px;left:${x}px`; bottom.style.cssText += `height:${game.clientHeight - 88 - topHeight - gap}px;left:${x}px`; game.insertBefore(top, document.querySelector('.ground')); game.insertBefore(bottom, document.querySelector('.ground')); state.pipes.push({ x, topHeight, passed: false, el: top, bottom }); };
+      const endGame = () => { state.running = false; if (state.score > state.best) { state.best = state.score; localStorage.setItem('skyHopperBest', state.best); } bestEl.textContent = state.best; kicker.textContent = state.score > 0 ? 'NICE FLIGHT!' : 'OOPS!'; title.textContent = 'Flight over'; copy.innerHTML = `You scored <strong>${state.score}</strong>. Your best is <strong>${state.best}</strong> — ready for another run?`; start.textContent = 'FLY AGAIN'; panel.classList.remove('hidden'); };
+      const tick = (time) => { if (!state.running) return; const elapsed = Math.min((time - state.lastTime) / 16.67, 2); state.lastTime = time; state.velocity += .43 * elapsed; state.birdY += state.velocity * elapsed; bird.style.top = `${state.birdY}px`; beak.style.top = `${state.birdY + 16}px`; bird.style.transform = `rotate(${Math.max(-25, Math.min(75, state.velocity * 5))}deg)`; if (time > state.spawnAt) { addPipe(); state.spawnAt = time + 1450; }
+        const birdX = 90, birdW = 52, birdH = 40; state.pipes.forEach(p => { p.x -= 2.55 * elapsed; p.el.style.left = `${p.x}px`; p.bottom.style.left = `${p.x}px`; if (!p.passed && p.x + 68 < birdX) { p.passed = true; state.score++; scoreEl.textContent = state.score; } }); state.pipes = state.pipes.filter(p => { if (p.x < -85) { p.el.remove(); p.bottom.remove(); return false; } return true; }); const hitPipe = state.pipes.some(p => birdX + birdW - 5 > p.x && birdX + 5 < p.x + 68 && (state.birdY + 4 < p.topHeight || state.birdY + birdH - 4 > p.topHeight + 165)); if (state.birdY < 0 || state.birdY + birdH > game.clientHeight - 88 || hitPipe) { endGame(); return; } requestAnimationFrame(tick); };
+      const startGame = () => { reset(); panel.classList.add('hidden'); state.running = true; state.lastTime = performance.now(); state.spawnAt = state.lastTime + 1100; requestAnimationFrame(tick); };
+      start.addEventListener('click', startGame); game.addEventListener('pointerdown', event => { if (!event.target.closest('button')) flap(); }); window.addEventListener('keydown', event => { if ([' ', 'ArrowUp'].includes(event.key)) { event.preventDefault(); flap(); } });
+      window.skyHopper = { startGame, flap, state };
+    })();
+  </script>
 </body>
 </html>

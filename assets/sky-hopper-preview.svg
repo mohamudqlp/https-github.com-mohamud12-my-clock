@@ -1,0 +1,18 @@
+<svg width="960" height="540" viewBox="0 0 960 540" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title description">
+  <title id="title">Sky Hopper game preview</title>
+  <desc id="description">A yellow bird flies between green pipes in a bright blue arcade sky.</desc>
+  <defs>
+    <linearGradient id="sky" x1="480" y1="0" x2="480" y2="432" gradientUnits="userSpaceOnUse"><stop stop-color="#78D5F7"/><stop offset="1" stop-color="#D7F4FF"/></linearGradient>
+    <filter id="shadow" x="0" y="0" width="960" height="540" filterUnits="userSpaceOnUse"><feDropShadow dx="0" dy="12" stdDeviation="13" flood-color="#5D4020" flood-opacity=".28"/></filter>
+  </defs>
+  <rect width="960" height="540" fill="#F7C85B"/>
+  <g filter="url(#shadow)"><rect x="128" y="30" width="704" height="480" rx="16" fill="url(#sky)" stroke="#FFF8DC" stroke-width="10"/>
+    <g fill="white" opacity=".9"><path d="M203 149c0-14 12-25 27-25 5-17 20-29 39-29 17 0 32 10 38 25 17 0 31 12 31 29H203Z"/><path d="M637 230c0-13 11-24 25-24 5-16 19-27 36-27 16 0 30 10 35 24 16 0 29 12 29 27H637Z"/><path d="M608 105c0-9 7-16 17-16 3-11 13-19 26-19 12 0 22 7 25 17 11 0 21 8 21 18H608Z"/></g>
+    <text x="171" y="100" fill="white" font-family="Arial, sans-serif" font-size="56" font-weight="900" stroke="#397D9F" stroke-width="3" paint-order="stroke">7</text><text x="174" y="122" fill="white" font-family="Arial, sans-serif" font-size="13" font-weight="900" letter-spacing="2">SCORE</text>
+    <rect x="710" y="61" width="82" height="62" rx="12" fill="#FFF" fill-opacity=".82" stroke="white" stroke-width="3"/><text x="728" y="84" fill="#14213D" font-family="Arial, sans-serif" font-size="11" font-weight="900" letter-spacing="1">BEST</text><text x="741" y="109" fill="#EE7B32" font-family="Arial, sans-serif" font-size="24" font-weight="900">12</text>
+    <g><rect x="554" y="30" width="68" height="150" fill="#53BA5E" stroke="#236B3C" stroke-width="3"/><rect x="546" y="154" width="84" height="27" fill="#68CA67" stroke="#236B3C" stroke-width="3"/><rect x="554" y="351" width="68" height="92" fill="#53BA5E" stroke="#236B3C" stroke-width="3"/><rect x="546" y="351" width="84" height="27" fill="#68CA67" stroke="#236B3C" stroke-width="3"/><path d="M565 33v142M611 33v142M565 357v82M611 357v82" stroke="#81D770" stroke-width="8" opacity=".75"/></g>
+    <g transform="translate(322 244) rotate(-10)"><path d="M-19 26c-13-4-22-1-28 9 13 9 27 8 39 0l-11-9Z" fill="#F7A928" stroke="#14213D" stroke-width="3"/><ellipse cx="10" cy="18" rx="29" ry="23" fill="#FFC700" stroke="#14213D" stroke-width="3"/><path d="M34 16l19 9-19 8V16Z" fill="#FF5D5D" stroke="#14213D" stroke-width="3"/><circle cx="19" cy="10" r="8" fill="white" stroke="#14213D" stroke-width="3"/><circle cx="21" cy="11" r="3" fill="#14213D"/></g>
+    <rect x="133" y="421" width="694" height="84" fill="#75BD45" stroke="#498D35" stroke-width="5"/><path d="M133 442h694v63H133z" fill="#CF8D43" stroke="#E4BB50" stroke-width="5"/>
+  </g>
+  <text x="480" y="529" text-anchor="middle" fill="#14213D" font-family="Arial, sans-serif" font-size="13" font-weight="700">SKY HOPPER • ONE-BUTTON ARCADE FLIGHT</text>
+</svg>
